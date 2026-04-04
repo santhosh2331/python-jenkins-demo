@@ -9,27 +9,18 @@ pipeline {
 
     stages {
 
-        stage('Setup Python Environment') {
+        stage('Install & Test') {
             steps {
                 sh '''
                 python3 -m venv venv
                 . venv/bin/activate
-                pip install --upgrade pip
                 pip install -r app/requirements.txt
-                '''
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh '''
-                . venv/bin/activate
                 pytest tests/
                 '''
             }
         }
 
-        stage('Build, Tag & Push Docker Image') {
+        stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-creds',
@@ -38,17 +29,11 @@ pipeline {
                 )]) {
 
                     sh '''
-                    echo "🔐 Docker Login"
                     echo $PASS | docker login -u $USER --password-stdin
 
-                    echo "🐳 Building Docker Image"
                     docker build -t $DOCKER_HUB/$IMAGE_NAME:$BUILD_TAG app/
+                    docker tag $DOCKER_HUB/$IMAGE_NAME:$BUILD_TAG $DOCKER_HUB/$IMAGE_NAME:latest
 
-                    echo "🏷️ Tagging as latest"
-                    docker tag $DOCKER_HUB/$IMAGE_NAME:$BUILD_TAG \
-                               $DOCKER_HUB/$IMAGE_NAME:latest
-
-                    echo "📤 Pushing Images"
                     docker push $DOCKER_HUB/$IMAGE_NAME:$BUILD_TAG
                     docker push $DOCKER_HUB/$IMAGE_NAME:latest
                     '''
@@ -56,20 +41,19 @@ pipeline {
             }
         }
 
-        stage('Deploy (Optional)') {
+        stage('Deploy') {
             steps {
-                echo "🚀 Deploy to Kubernetes / EC2 here"
+                echo "Deploy step (optional)"
             }
         }
     }
 
     post {
         success {
-            echo "🎉 Pipeline completed successfully!"
-            echo "✅ Image: $DOCKER_HUB/$IMAGE_NAME:$BUILD_TAG"
+            echo "✅ Success: $DOCKER_HUB/$IMAGE_NAME:$BUILD_TAG"
         }
         failure {
-            echo "❌ Pipeline failed!"
+            echo "❌ Failed"
         }
     }
 }

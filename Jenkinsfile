@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "python-project"
+        IMAGE_NAME = "python-project1"
         DOCKER_HUB = "reshma0209"
         BUILD_TAG = "${BUILD_NUMBER}"
     }
